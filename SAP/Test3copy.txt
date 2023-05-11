@@ -1,0 +1,243 @@
+
+.start begin
+
+
+ 
+space: .Integer #32 
+currentState: .Integer #0 
+head: .Integer #0 
+inputChar: .Integer #49 
+tape: .String "_010101_"
+endTape: .Integer #0 
+ 
+ 
+NewLine: .Integer #10 
+StartMess: .string "Welcome to Turing!"
+TuplesMess: .string "Tuples:"
+InitialState: .string "Initial State: "
+InitialStateHead: .string "Initial Tape Head: "
+InitialTape: .string "Initial Tape: "
+FinalTape: .string "Final Tape: "
+Message: .string "Turing Run Complete"
+tupleString: .String "  Tuple: "
+StartCount: .String "That took "
+EndCount: .String " steps"
+count: .Integer #0
+ 
+ 
+startTuple: .tuple \0 _ 0 _ r\
+            .tuple \0 1 1 0 r\
+            .tuple \0 0 1 1 r\
+            .tuple \1 0 1 1 r\
+            .tuple \1 1 1 0 r\
+endTuple:   .integer #0
+ 
+ 
+;newLine character is in r2 
+begin: movmr NewLine r2 
+       outs startMess 
+       outcr r2 
+       outcr r2 
+       outs TuplesMess 
+       outcr r2 
+ 
+ 
+       ;input is in currentState and inputChar, update before use.  
+       ;for now they’re just set at the begging for testing 
+ 
+ 
+ 
+ 
+       movar tape r3  
+       addir #1 r3 
+       movrm r3 head         ;set head 
+       movar inputChar r4 
+       movxx r3 r4           ;set inputChar 
+        
+ 
+ 
+       ;print tuples 
+       jsr startPT 
+       outcr r2 
+       outcr r2 
+ 
+ 
+       ;initial states 
+       outs InitialState           
+       movar currentState r5 
+       movxr r5 r6 
+       printi r6  
+       outcr r2 
+       outs InitialStateHead 
+       movar head r7 
+       movar tape r8 
+       movxr r7 r7 
+       addir #1 r8 
+       subrr r8 r7 
+       printi r7 
+       outcr r2 
+       outs InitialTape 
+       outs tape  
+       outcr r2 
+       outcr r2 
+ 
+ 
+ 
+ 
+       ;run + trace 
+       jsr runTuring 
+ 
+ 
+ 
+ 
+       outs Message 
+       outcr r2 
+       outs FinalTape  
+       outs tape 
+       outcr r2 
+       outs startCount 
+       movmr count r9 
+       printi r9 
+       outs endCount 
+       outcr r2 
+       halt 
+ 
+ 
+runTuring: jsr findTuple  
+           cmpir #1 r1 
+           jmpne change 
+ 
+ 
+ 
+ 
+;returns matching tuple memory address in r0 
+;error code in r1: 0 if found. 1 if not 
+ 
+ 
+;r5 is cs 
+;r6 is ic 
+;r8 is address of endTuple 
+;r9 is current tuple label 
+ 
+ 
+findTuple: movar startTuple r9 
+           movar endTuple r8 
+nextTuple: movxr r9 r5             ;get cs 
+           addir #1 r9 
+           movxr r9 r6             ;get ic 
+           cmpmr currentState r5   ;check cs 
+           jmpne next 
+           cmpmr inputChar r6      ;check ic 
+           jmpne next 
+           ;---found tuple--- 
+           subir #1 r9 
+           movrr r9 r0             ;return address 
+           movir #0 r1             ;set error code 
+           jsr printTape 
+           outs tupleString 
+           movrm r9 curt 
+           jsr printtuple 
+           movmr newLine r7 
+           outcr r7 
+           ret 
+ 
+ 
+next:      addir #4 r9 
+           cmprr r8 r9             ;check if last tuple 
+           jmpne nextTuple 
+           ;---reached end of tuples--- 
+           movir #1 r1 
+           ret 
+ 
+ 
+ 
+ 
+ 
+ 
+Change:    addir #2 r0     
+           movxr r0 r5             ;ns in r5 
+           addir #1 r0  
+           movxr r0 r6             ;oc in r6 
+           addir #1 r0 
+           movxr r0 r7             ;di in r7  
+ 
+ 
+           movmr head r8 
+           movrx r6 r8             ;change tape 
+ 
+ 
+           movrm r5 currentState   ;change state 
+           movmr head r8           ;head in r8                                                                                                                                                                                
+           addrr r7 r8             ;add di 
+           movrm r8 head           ;head is set 
+           movar inputChar r9  
+           movxx r8 r9 
+ 
+ 
+           movmr count r5 
+           addir #1 r5 
+           movrm r5 count 
+ 
+ 
+           jmp runTuring 
+  
+startPT:   movar startTuple r9 
+           movar endTuple r8 
+           movar curt r7 
+           movrx r9 r7 
+printT:    jsr printTuple 
+           movmr newLine r5 
+           outcr r5 
+           movmr curt r6 
+           addir #5 r6 
+           movrm r6 curt   ;add 5 to curt  
+           cmpmr curt r8 
+           jmpne printT 
+           ret 
+ 
+ 
+ 
+ 
+;change curt before calling subr 
+curt: .integer #0
+Line: .string " "
+PrintTuple: movmr curt r5 
+            ;printi r5    
+            movxr r5 r6 
+            printi r6         ;print cs 
+            outs line       
+            addir #1 r5 
+            outcx r5          ;print ic 
+            outs line 
+            addir #1 r5 
+            movxr r5 r6  
+            printi r6         ;print ns 
+            outs line 
+            addir #1 r5 
+            outcx r5          ;print oc 
+            outs line 
+            addir #1 r5 
+            movxr r5 r6 
+            printi r6         ;print di 
+            ret 
+ 
+ 
+    
+openBracket: .String "["
+closeBracket: .String "]"
+printTape: movar tape r5      ;start label in r5 
+           addir #1 r5 
+           movar endTape r6   ;end in r6 
+printC:    cmprr r5 r6 
+           jmpz end           ;if reached end 
+           movxr r5 r9        ;char in r9 
+           cmpmr head r5 
+           jmpne normal 
+           outs openBracket 
+           outcr r9 
+           outs closeBracket 
+           jmp iterate 
+normal:    outcr r9 
+iterate:   addir #1 r5 
+           jmp printC 
+end:       ret
